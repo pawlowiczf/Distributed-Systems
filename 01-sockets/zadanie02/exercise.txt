@@ -1,0 +1,6 @@
+Zaimplementować komunikację przez UDP
+pomiędzy językami Java i Python
+– JavaUdpServer + PythonUdpClient
+– Należy przesłać wiadomość tekstową:
+‘żółta gęś’
+(uwaga na kodowanie)
