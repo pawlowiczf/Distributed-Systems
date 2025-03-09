@@ -1,5 +1,6 @@
 package main
 
+// https://eli.thegreenplace.net/2020/graceful-shutdown-of-a-tcp-server-in-go/
 import (
 	"bufio"
 	"context"
@@ -22,6 +23,7 @@ const (
 
 type Server struct {
 	mu    sync.Mutex
+	wg    sync.WaitGroup
 	rooms map[string]*ChatRoom
 }
 
@@ -43,6 +45,7 @@ func CreateServer() *Server {
 func main() {
 	server := CreateServer()
 	fmt.Println("[Server] Listening...")
+
 	listener, err := net.Listen("tcp", "127.0.0.1:8080")
 	if err != nil {
 		log.Fatalf("cannot create listener: %s", err)
@@ -57,16 +60,23 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("Received ctx done server in main()")
-			return 
+			return
+
 		default:
 			conn, err := listener.Accept()
 			if err != nil {
-				fmt.Printf("cannot accept connection: %s\n", err)
-				continue
+				select {
+				case <-ctx.Done():
+					server.wg.Wait()
+					return
+				default:
+					fmt.Printf("cannot accept connection: %s\n", err)
+					continue
+				}
 			}
-	
+
 			fmt.Println("Accepted connection from: ", conn.RemoteAddr().String())
+			server.wg.Add(1)
 			go server.handleConnection(ctx, conn)
 		}
 	}
@@ -74,6 +84,8 @@ func main() {
 
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
+	defer server.wg.Done()
+
 	reader := bufio.NewReader(conn)
 
 	chatID, err := reader.ReadString('\n')
@@ -110,43 +122,47 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("Received ctx done server in client")
-			return 
+			return
 
 		case <-clientCtx.Done():
-			fmt.Println("Klient done()")
-			return 
+			return
 
 		default:
-			server.handleConnReading(clientCancel, username, chatID, conn, reader)
+			server.handleConnReading(ctx, clientCancel, username, chatID, conn, reader)
 		}
 
 	}
 }
 
 func (server *Server) handleConnReading(
-	cancel context.CancelFunc, 
-	username string, 
-	chatID string, 
-	conn net.Conn, 
+	ctx context.Context,
+	clientCancel context.CancelFunc,
+	username string,
+	chatID string,
+	conn net.Conn,
 	reader *bufio.Reader) {
 
 	messageData, err := reader.ReadBytes('\n')
 	if err != nil {
-		fmt.Println("cannot read message from data: ", err)
-		return
+		select {
+		case <- ctx.Done():
+			return 
+		default:
+			fmt.Println("cannot read message from data: ", err)
+			return
+		}
 	}
 
 	var messageType MessageType
 	err = json.Unmarshal(messageData, &messageType)
 	if err != nil {
 		fmt.Println("couldn't unmarshall message: ", err)
-		return 
+		return
 	}
 
 	if messageType.Type == ShutdownMessage {
 		server.removeUserFromChatRoom(messageData, conn)
-		cancel()
+		clientCancel()
 		return
 	}
 
@@ -195,6 +211,9 @@ func (server *Server) sendByeToOthers(username string, chatID string) {
 	messageData = append(messageData, '\n')
 
 	for _, user := range server.rooms[chatID].Users {
+		// if user.username == username {
+		// 	continue
+		// }
 		_, err = user.conn.Write(messageData)
 		if err != nil {
 			fmt.Println("couldn't send message to server: ", err)
@@ -223,6 +242,7 @@ func (server *Server) removeUserFromChatRoom(messageData []byte, conn net.Conn) 
 			break
 		}
 	}
+	conn.Close()
 }
 
 func (server *Server) sendMessageToOthers(username, chatID string, messageData []byte) {
@@ -262,7 +282,7 @@ func (server *Server) handleServerShutdownConn(listener net.Listener, cancel con
 		<-signalChan
 		cancel()
 		listener.Close()
-		
+
 		message := Message{
 			Username: "server",
 			Message:  "[Server] This chatroom was closed!",
@@ -283,6 +303,5 @@ func (server *Server) handleServerShutdownConn(listener net.Listener, cancel con
 			}
 		}
 
-		
 	}()
 }

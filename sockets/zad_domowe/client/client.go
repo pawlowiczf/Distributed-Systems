@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -51,7 +52,9 @@ func main() {
 	}
 
 	defer conn.Close()
-	handleShutdownConn(conn, *username, *chatID)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	handleShutdownConn(conn, cancel, *username, *chatID)
 
 	go func() {
 		fmt.Fprintf(conn, "%s\n", *chatID)
@@ -62,12 +65,17 @@ func main() {
 		for {
 			messageText, err := reader.ReadString('\n')
 			if err != nil {
-				if err == io.EOF {
-					fmt.Println("Stopped reading from stdin...")
+				select {
+				case <-ctx.Done():
+					fmt.Println("DONE CLIENT")
 					return
+				default:
+					if err == io.EOF {
+						return
+					}
+					fmt.Println("couldn't read message from stdin: ", err)
+					continue
 				}
-				fmt.Println("couldn't read message from stdin: ", err)
-				continue
 			}
 
 			var message Message
@@ -87,18 +95,23 @@ func main() {
 				fmt.Println("couldn't send message to server: ", err)
 			}
 		}
-
 	}()
 
 	reader := bufio.NewReader(conn)
 	for {
 		messageData, err := reader.ReadBytes('\n')
 		if err != nil {
-			if err == io.EOF {
+			select {
+			case <-ctx.Done():
+				return
+
+			default:
+				if err == io.EOF {
+					return
+				}
+				fmt.Println("cannot read message from data: ", err)
 				return
 			}
-			fmt.Println("cannot read message from data: ", err)
-			return
 		}
 
 		var message Message
@@ -110,22 +123,22 @@ func main() {
 
 		if message.Type == NormalMessage {
 			fmt.Printf("[%s] (%s): %s", *chatID, message.Username, message.Message)
-			continue 
+			continue
 		}
 		if message.Type == JoinedLeftMessage {
 			fmt.Println(message.Message)
-			continue 
+			continue
 		}
 		if message.Type == ShutdownMessage {
 			fmt.Println(message.Message)
-			return 
+			return
 		}
 	}
 }
 
 const (
-	NormalMessage   = "normal-message"
-	ShutdownMessage = "shutdown-message"
+	NormalMessage     = "normal-message"
+	ShutdownMessage   = "shutdown-message"
 	JoinedLeftMessage = "joined-left-message"
 )
 
@@ -141,16 +154,17 @@ type ShutdownConn struct {
 	Type     string `json:"type"`
 }
 
-func handleShutdownConn(conn net.Conn, username string, chatID string) {
+func handleShutdownConn(conn net.Conn, cancel context.CancelFunc, username string, chatID string) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		<-signalChan
+		cancel()
 		message := ShutdownConn{
 			Username: username,
 			ChatID:   chatID,
-			Type: ShutdownMessage,
+			Type:     ShutdownMessage,
 		}
 
 		data, err := json.Marshal(message)
@@ -160,5 +174,6 @@ func handleShutdownConn(conn net.Conn, username string, chatID string) {
 		}
 		data = append(data, '\n')
 		conn.Write(data)
+		// conn.Close()
 	}()
 }
