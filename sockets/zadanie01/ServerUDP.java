@@ -17,7 +17,7 @@ public class ServerUDP {
             while (true) {
                 serverSocket.receive(packet);
                 String request = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8);
-                System.out.println("[Server] Received request from client: " + request);
+                System.out.println("[Server] Received request from: " + packet.getAddress() + ". Message: + request");
 
                 byte[] response = responseMsg.getBytes(StandardCharsets.UTF_8);
                 packet = new DatagramPacket(response, response.length, packet.getAddress(), packet.getPort());

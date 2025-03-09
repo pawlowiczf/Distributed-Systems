@@ -72,15 +72,16 @@ func main() {
 			var message Message
 			message.Username = *username
 			message.Message = messageText
+			message.Type = NormalMessage
 
-			data, err := json.Marshal(message)
+			messageData, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println("couldn't marshal message: ", err)
 				continue
 			}
 
-			data = append(data, '\n')
-			_, err = conn.Write(data)
+			messageData = append(messageData, '\n')
+			_, err = conn.Write(messageData)
 			if err != nil {
 				fmt.Println("couldn't send message to server: ", err)
 			}
@@ -90,7 +91,7 @@ func main() {
 
 	reader := bufio.NewReader(conn)
 	for {
-		messageText, err := reader.ReadString('\n')
+		messageData, err := reader.ReadBytes('\n')
 		if err != nil {
 			if err == io.EOF {
 				return
@@ -100,24 +101,43 @@ func main() {
 		}
 
 		var message Message
-		err = json.Unmarshal([]byte(messageText), &message)
+		err = json.Unmarshal(messageData, &message)
 		if err != nil {
-			fmt.Print(messageText)
+			fmt.Println("couldn't unmarshal message: ", err)
 			continue
 		}
 
-		fmt.Printf("[%s] (%s): %s", *chatID, message.Username, message.Message)
+		if message.Type == NormalMessage {
+			fmt.Printf("[%s] (%s): %s", *chatID, message.Username, message.Message)
+			continue 
+		}
+		if message.Type == JoinedLeftMessage {
+			fmt.Println(message.Message)
+			continue 
+		}
+		if message.Type == ShutdownMessage {
+			fmt.Println(message.Message)
+			return 
+		}
 	}
 }
+
+const (
+	NormalMessage   = "normal-message"
+	ShutdownMessage = "shutdown-message"
+	JoinedLeftMessage = "joined-left-message"
+)
 
 type Message struct {
 	Username string `json:"username"`
 	Message  string `json:"message"`
+	Type     string `json:"type"`
 }
 
 type ShutdownConn struct {
 	Username string `json:"username"`
 	ChatID   string `json:"chat_id"`
+	Type     string `json:"type"`
 }
 
 func handleShutdownConn(conn net.Conn, username string, chatID string) {
@@ -129,6 +149,7 @@ func handleShutdownConn(conn net.Conn, username string, chatID string) {
 		message := ShutdownConn{
 			Username: username,
 			ChatID:   chatID,
+			Type: ShutdownMessage,
 		}
 
 		data, err := json.Marshal(message)

@@ -12,7 +12,7 @@ public class JavaUdpServer {
 
         try{
             socket = new DatagramSocket(portNumber);
-            byte[] receiveBuffer = new byte[1024]
+            byte[] receiveBuffer = new byte[1024];
 
             while(true) {
                 Arrays.fill(receiveBuffer, (byte)0);
