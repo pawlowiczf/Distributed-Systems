@@ -63,6 +63,7 @@ func main() {
 			messageText, err := reader.ReadString('\n')
 			if err != nil {
 				if err == io.EOF {
+					fmt.Println("Stopped reading from stdin...")
 					return
 				}
 				fmt.Println("couldn't read message from stdin: ", err)

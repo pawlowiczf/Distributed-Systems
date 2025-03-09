@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 )
 
@@ -19,6 +21,7 @@ const (
 )
 
 type Server struct {
+	mu    sync.Mutex
 	rooms map[string]*ChatRoom
 }
 
@@ -46,21 +49,30 @@ func main() {
 	}
 
 	defer listener.Close()
-	server.handleShutdownConn()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	server.handleServerShutdownConn(listener, cancel)
 
 	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			fmt.Printf("cannot accept connection: %s\n", err)
-			continue
+		select {
+		case <-ctx.Done():
+			fmt.Println("Received ctx done server in main()")
+			return 
+		default:
+			conn, err := listener.Accept()
+			if err != nil {
+				fmt.Printf("cannot accept connection: %s\n", err)
+				continue
+			}
+	
+			fmt.Println("Accepted connection from: ", conn.RemoteAddr().String())
+			go server.handleConnection(ctx, conn)
 		}
-
-		fmt.Println("Accepted connection from: ", conn.RemoteAddr().String())
-		go server.handleConnection(conn)
 	}
 }
 
-func (server *Server) handleConnection(conn net.Conn) {
+func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 
@@ -80,6 +92,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 		return
 	}
 
+	server.mu.Lock()
 	if _, ok := server.rooms[chatID]; !ok {
 		server.rooms[chatID] = &ChatRoom{
 			Users: []User{{conn: conn, username: username}},
@@ -89,31 +102,57 @@ func (server *Server) handleConnection(conn net.Conn) {
 		server.rooms[chatID].Users = append(server.rooms[chatID].Users, User{conn, username})
 		server.sendHelloToOthers(username, chatID)
 	}
+	server.mu.Unlock()
+
+	clientCtx, clientCancel := context.WithCancel(context.Background())
+	defer clientCancel()
 
 	for {
-		messageData, err := reader.ReadBytes('\n')
-		if err != nil {
-			fmt.Println("cannot read message from data: ", err)
-			return
+		select {
+		case <-ctx.Done():
+			fmt.Println("Received ctx done server in client")
+			return 
+
+		case <-clientCtx.Done():
+			fmt.Println("Klient done()")
+			return 
+
+		default:
+			server.handleConnReading(clientCancel, username, chatID, conn, reader)
 		}
 
-		var messageType MessageType
-		err = json.Unmarshal(messageData, &messageType)
-		if err != nil {
-			fmt.Println("couldn't unmarshall message: ", err)
-			continue
-		}
+	}
+}
 
-		if messageType.Type == ShutdownMessage {
-			server.removeUserFromChatRoom(messageData, conn)
-			return
-		}
+func (server *Server) handleConnReading(
+	cancel context.CancelFunc, 
+	username string, 
+	chatID string, 
+	conn net.Conn, 
+	reader *bufio.Reader) {
 
-		if messageType.Type == NormalMessage {
-			server.sendMessageToOthers(username, chatID, messageData)
-			continue
-		}
+	messageData, err := reader.ReadBytes('\n')
+	if err != nil {
+		fmt.Println("cannot read message from data: ", err)
+		return
+	}
 
+	var messageType MessageType
+	err = json.Unmarshal(messageData, &messageType)
+	if err != nil {
+		fmt.Println("couldn't unmarshall message: ", err)
+		return 
+	}
+
+	if messageType.Type == ShutdownMessage {
+		server.removeUserFromChatRoom(messageData, conn)
+		cancel()
+		return
+	}
+
+	if messageType.Type == NormalMessage {
+		server.sendMessageToOthers(username, chatID, messageData)
+		return
 	}
 }
 
@@ -164,6 +203,8 @@ func (server *Server) sendByeToOthers(username string, chatID string) {
 }
 
 func (server *Server) removeUserFromChatRoom(messageData []byte, conn net.Conn) {
+	defer conn.Close()
+
 	var shutdownConn ShutdownConn
 	err := json.Unmarshal(messageData, &shutdownConn)
 	if err != nil {
@@ -182,7 +223,6 @@ func (server *Server) removeUserFromChatRoom(messageData []byte, conn net.Conn) 
 			break
 		}
 	}
-	conn.Close()
 }
 
 func (server *Server) sendMessageToOthers(username, chatID string, messageData []byte) {
@@ -214,13 +254,15 @@ type Message struct {
 	Type     string `json:"type"`
 }
 
-func (server *Server) handleShutdownConn() {
+func (server *Server) handleServerShutdownConn(listener net.Listener, cancel context.CancelFunc) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		<-signalChan
-
+		cancel()
+		listener.Close()
+		
 		message := Message{
 			Username: "server",
 			Message:  "[Server] This chatroom was closed!",
@@ -230,7 +272,7 @@ func (server *Server) handleShutdownConn() {
 		messageData, err := json.Marshal(&message)
 		if err != nil {
 			fmt.Println("couldn't marshal message, during handling server shutdown: ", err)
-			return 
+			return
 		}
 		messageData = append(messageData, '\n')
 
@@ -240,5 +282,7 @@ func (server *Server) handleShutdownConn() {
 				user.conn.Close()
 			}
 		}
+
+		
 	}()
 }
