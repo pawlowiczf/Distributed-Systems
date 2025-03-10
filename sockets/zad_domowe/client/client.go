@@ -117,8 +117,8 @@ func main() {
 			message.Username = *username
 			message.Message = messageText
 			message.Type = NormalMessage
-
-			if messageText[0] == 'U' {
+			
+			if messageText[0] == 'U' && messageText[1] == '\r' {
 				message.Message = rabbit
 				message.ChatID = *chatID
 				err := sendUDPMessageToServer(udpConn, message)

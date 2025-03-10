@@ -181,7 +181,6 @@ func (server *Server) handleUDPConnection(
 		}
 
 		if message.Type == HelloUDP {
-			fmt.Println("DODAJĘ", clientAddr.String())
 			server.mu.Lock()
 			server.rooms[message.ChatID].UsersUDP = append(server.rooms[message.ChatID].UsersUDP, clientAddr)
 			server.mu.Unlock()
