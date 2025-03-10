@@ -19,6 +19,7 @@ const (
 	NormalMessage     = "normal-message"
 	ShutdownMessage   = "shutdown-message"
 	JoinedLeftMessage = "joined-left-message"
+	HelloUDP          = "hello-udp-from-client"
 )
 
 type Server struct {
@@ -33,7 +34,8 @@ type User struct {
 }
 
 type ChatRoom struct {
-	Users []User
+	Users    []User
+	UsersUDP []*net.UDPAddr
 }
 
 func CreateServer() *Server {
@@ -50,12 +52,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot create listener: %s", err)
 	}
-
 	defer listener.Close()
+
+	udpAddress, err := net.ResolveUDPAddr("udp", "127.0.0.1:8081")
+	if err != nil {
+		log.Fatalf("cannot resolve udp address: %s", err)
+	}
+	udpConn, err := net.ListenUDP("udp", udpAddress)
+	if err != nil {
+		log.Fatalf("cannot createt udp listener: %s", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	server.handleServerShutdownConn(listener, cancel)
+	
+	go server.handleUDPConnection(ctx, udpConn)
+	server.handleServerShutdownConn(listener, udpConn, cancel)
 
 	for {
 		select {
@@ -104,14 +116,21 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 		return
 	}
 
+	user := User{
+		conn:     conn,
+		username: username,
+	}
+
 	server.mu.Lock()
 	if _, ok := server.rooms[chatID]; !ok {
+
 		server.rooms[chatID] = &ChatRoom{
-			Users: []User{{conn: conn, username: username}},
+			UsersUDP: []*net.UDPAddr{},
+			Users:    []User{user},
 		}
 
 	} else {
-		server.rooms[chatID].Users = append(server.rooms[chatID].Users, User{conn, username})
+		server.rooms[chatID].Users = append(server.rooms[chatID].Users, user)
 		server.sendHelloToOthers(username, chatID)
 	}
 	server.mu.Unlock()
@@ -134,6 +153,63 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	}
 }
 
+func (server *Server) handleUDPConnection(
+	ctx context.Context,
+	udpConn *net.UDPConn,
+) {
+	server.wg.Add(1)
+	defer server.wg.Done()
+	buffer := make([]byte, 1024)
+
+	for {
+		length, clientAddr, err := udpConn.ReadFromUDP(buffer)
+		if err != nil {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				fmt.Println("cannot read message from data: ", err)
+				return
+			}
+		}
+
+		var message Message
+		err = json.Unmarshal(buffer[:length], &message)
+		if err != nil {
+			fmt.Println("couldn't unmarshal message, during handling udp conn")
+			continue
+		}
+
+		if message.Type == HelloUDP {
+			fmt.Println("DODAJĘ", clientAddr.String())
+			server.mu.Lock()
+			server.rooms[message.ChatID].UsersUDP = append(server.rooms[message.ChatID].UsersUDP, clientAddr)
+			server.mu.Unlock()
+			continue 
+		}
+		if message.Type == NormalMessage {
+			server.sendUDPMessageToOthers(udpConn, message, clientAddr)
+			continue
+		}
+	}
+}
+
+func (server *Server) sendUDPMessageToOthers(udpConn *net.UDPConn, message Message, clientAddr *net.UDPAddr) {
+	chatID := message.ChatID
+
+	for _, addr := range server.rooms[chatID].UsersUDP {
+		if addr.String() == clientAddr.String() {
+			continue
+		}
+
+		messageData, _ := json.Marshal(message)
+		_, err := udpConn.WriteToUDP(messageData, addr)
+		if err != nil {
+			fmt.Println("couldn't send message to user: ", err)
+		}
+	}
+}
+
 func (server *Server) handleConnReading(
 	ctx context.Context,
 	clientCancel context.CancelFunc,
@@ -145,8 +221,8 @@ func (server *Server) handleConnReading(
 	messageData, err := reader.ReadBytes('\n')
 	if err != nil {
 		select {
-		case <- ctx.Done():
-			return 
+		case <-ctx.Done():
+			return
 		default:
 			fmt.Println("cannot read message from data: ", err)
 			return
@@ -242,6 +318,7 @@ func (server *Server) removeUserFromChatRoom(messageData []byte, conn net.Conn) 
 			break
 		}
 	}
+
 	conn.Close()
 }
 
@@ -272,9 +349,10 @@ type Message struct {
 	Username string `json:"username"`
 	Message  string `json:"message"`
 	Type     string `json:"type"`
+	ChatID   string `json:"chat_id"`
 }
 
-func (server *Server) handleServerShutdownConn(listener net.Listener, cancel context.CancelFunc) {
+func (server *Server) handleServerShutdownConn(listener net.Listener, udpConn *net.UDPConn, cancel context.CancelFunc) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
@@ -282,6 +360,7 @@ func (server *Server) handleServerShutdownConn(listener net.Listener, cancel con
 		<-signalChan
 		cancel()
 		listener.Close()
+		udpConn.Close()
 
 		message := Message{
 			Username: "server",
@@ -302,6 +381,6 @@ func (server *Server) handleServerShutdownConn(listener net.Listener, cancel con
 				user.conn.Close()
 			}
 		}
-
+		
 	}()
 }
