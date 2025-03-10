@@ -67,7 +67,6 @@ func main() {
 			if err != nil {
 				select {
 				case <-ctx.Done():
-					fmt.Println("DONE CLIENT")
 					return
 				default:
 					if err == io.EOF {
