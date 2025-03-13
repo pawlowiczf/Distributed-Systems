@@ -44,17 +44,23 @@ func CreateServer() *Server {
 	}
 }
 
+const (
+	ServerTCPAddress = "127.0.0.1:8080"
+	ServerUDPAddress = "127.0.0.1:8081"
+	MulticastUDP     = "233.1.1.1:9999"
+)
+
 func main() {
 	server := CreateServer()
 	fmt.Println("[Server] Listening...")
 
-	listener, err := net.Listen("tcp", "127.0.0.1:8080")
+	listener, err := net.Listen("tcp", ServerTCPAddress)
 	if err != nil {
 		log.Fatalf("cannot create listener: %s", err)
 	}
 	defer listener.Close()
 
-	udpAddress, err := net.ResolveUDPAddr("udp", "127.0.0.1:8081")
+	udpAddress, err := net.ResolveUDPAddr("udp", ServerUDPAddress)
 	if err != nil {
 		log.Fatalf("cannot resolve udp address: %s", err)
 	}
@@ -144,6 +150,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			return
 
 		case <-clientCtx.Done():
+			server.removeUser(username, chatID, conn)
 			return
 
 		default:
@@ -219,12 +226,15 @@ func (server *Server) handleConnReading(
 
 	messageData, err := reader.ReadBytes('\n')
 	if err != nil {
+		clientCancel()
+
 		select {
 		case <-ctx.Done():
-			return
+			return 
 		default:
 			fmt.Println("cannot read message from data: ", err)
-			return
+			// clientCancel()
+			return 
 		}
 	}
 
@@ -232,19 +242,20 @@ func (server *Server) handleConnReading(
 	err = json.Unmarshal(messageData, &messageType)
 	if err != nil {
 		fmt.Println("couldn't unmarshall message: ", err)
-		return
+		return 
 	}
 
 	if messageType.Type == ShutdownMessage {
 		server.removeUserFromChatRoom(messageData, conn)
 		clientCancel()
-		return
+		return 
 	}
 
 	if messageType.Type == NormalMessage {
 		server.sendMessageToOthers(username, chatID, messageData)
-		return
+		return 
 	}
+
 }
 
 func (server *Server) sendHelloToOthers(newUsername string, chatID string) {
@@ -321,6 +332,15 @@ func (server *Server) removeUserFromChatRoom(messageData []byte, conn net.Conn) 
 	conn.Close()
 }
 
+func (server *Server) removeUser(username, chatID string, conn net.Conn) {
+	for a := 0; a < len(server.rooms[chatID].Users); a++ {
+		if server.rooms[chatID].Users[a].username == username {
+			server.rooms[chatID].Users = append(server.rooms[chatID].Users[:a], server.rooms[chatID].Users[a+1:]...)
+			break
+		}
+	}
+	conn.Close()
+}
 func (server *Server) sendMessageToOthers(username, chatID string, messageData []byte) {
 	for _, user := range server.rooms[chatID].Users {
 		if user.username == username {
