@@ -121,4 +121,12 @@ async def update_poll(
 
 @app.delete('/v1/poll/{poll_id}')
 async def delete_pool(poll_id: int):
-    pass 
+    if poll_id not in polls:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This poll doesn't exists. Create one first!"
+        )
+    #
+
+    del polls[poll_id]      
+# end procedure delete_pool()
