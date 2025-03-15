@@ -141,6 +141,8 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	}
 	server.mu.Unlock()
 
+	conn.Write([]byte("READY\n"))
+	
 	clientCtx, clientCancel := context.WithCancel(context.Background())
 	defer clientCancel()
 

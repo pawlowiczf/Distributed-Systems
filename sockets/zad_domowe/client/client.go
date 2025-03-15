@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"golang.org/x/net/ipv4"
 )
 
 const (
@@ -54,6 +55,9 @@ func setupTCPConn(address string, username string, chatID string) net.Conn {
 	fmt.Fprintf(conn, "%s\n", chatID)
 	fmt.Fprintf(conn, "%s\n", username)
 
+	reader := bufio.NewReader(conn)
+	reader.ReadBytes('\n')
+	
 	return conn
 }
 
@@ -85,19 +89,46 @@ func setupUDPConn(address string, username string, chatID string) *net.UDPConn {
 	return udpConn
 }
 
-func setupMulticastUDPConn() *net.UDPConn {
-	addr, err := net.ResolveUDPAddr("udp", MulticastUDP)
+// func setupMulticastUDPConn() *net.UDPConn {
+// 	addr, err := net.ResolveUDPAddr("udp", MulticastUDP)
+// 	if err != nil {
+// 		log.Fatalf("cannot resolve multicast udp address: %s", err)
+// 	}
+
+// 	ifaces, _ := net.Interfaces()
+// 	mUdpConn, err := net.ListenMulticastUDP("udp4", &ifaces[0], addr)
+// 	if err != nil {
+// 		log.Fatalf("cannot listen on multicast udp: %s", err)
+// 	}
+
+// 	return mUdpConn
+// }
+
+func setupMulticastUDPConn() *ipv4.PacketConn {
+	addr, err := net.ResolveUDPAddr("udp4", MulticastUDP)
 	if err != nil {
-		log.Fatalf("cannot resolve multicast udp address: %s", err)
+		log.Fatalf("cannot resolve multicast address: %v", err)
 	}
 
-	ifaces, _ := net.Interfaces()
-	mUdpConn, err := net.ListenMulticastUDP("udp", &ifaces[1], addr)
+	conn, err := net.ListenPacket("udp4", MulticastUDP)
 	if err != nil {
-		log.Fatalf("cannot listen on multicast udp: %s", err)
+		log.Fatalf("cannot listen on UDP: %v", err)
 	}
 
-	return mUdpConn
+	p := ipv4.NewPacketConn(conn)
+
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		log.Fatalf("cannot get interfaces: %v", err)
+	}
+
+	p.JoinGroup(&ifaces[1], addr)
+		
+	if err := p.SetMulticastLoopback(true); err != nil {
+		log.Fatalf("cannot enable multicast loopback: %v", err)
+	}
+
+	return p
 }
 
 func main() {
@@ -175,7 +206,6 @@ func main() {
 					fmt.Println("cannot dial multicast udp", err)
 					return 
 				}
-				fmt.Println(conn.LocalAddr().String())
 
 				messageData, err := json.Marshal(message)
 				if err != nil {
@@ -233,9 +263,7 @@ func main() {
 	go func() {
 		buffer := make([]byte, 1024)
 		for {
-			fmt.Println(mUdpConn.LocalAddr().String())
-			// length, _, err := mUdpConn.ReadFrom(buffer)
-			length, _, err := mUdpConn.ReadFromUDP(buffer)
+			length, _, _, err := mUdpConn.ReadFrom(buffer)
 			if err != nil {
 				select {
 				case <-ctx.Done():
@@ -352,7 +380,7 @@ func sendUDPMessageToServer(conn *net.UDPConn, message Message) error {
 
 	return nil
 }
-func handleShutdownConn(conn net.Conn, mUdpConn *net.UDPConn, udpConn *net.UDPConn, cancel context.CancelFunc, username string, chatID string) {
+func handleShutdownConn(conn net.Conn, mUdpConn *ipv4.PacketConn, udpConn *net.UDPConn, cancel context.CancelFunc, username string, chatID string) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
