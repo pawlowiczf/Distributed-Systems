@@ -23,7 +23,7 @@ const (
 )
 
 func RandomUsername() string {
-	names := []string{"marek", "adam", "filip", "kuba", "dorota", "kamil", "kacper", "andrzej", "tomek"}
+	names := []string{"marek", "adam", "filip", "kuba", "dorota", "kamil", "kacper", "andrzej", "tomek", "dominik", "mikolaj", "ola"}
 	digits := "0123456789"
 	randomDigits := make([]byte, 3)
 
@@ -57,7 +57,7 @@ func setupTCPConn(address string, username string, chatID string) net.Conn {
 
 	reader := bufio.NewReader(conn)
 	reader.ReadBytes('\n')
-	
+
 	return conn
 }
 
@@ -89,21 +89,6 @@ func setupUDPConn(address string, username string, chatID string) *net.UDPConn {
 	return udpConn
 }
 
-// func setupMulticastUDPConn() *net.UDPConn {
-// 	addr, err := net.ResolveUDPAddr("udp", MulticastUDP)
-// 	if err != nil {
-// 		log.Fatalf("cannot resolve multicast udp address: %s", err)
-// 	}
-
-// 	ifaces, _ := net.Interfaces()
-// 	mUdpConn, err := net.ListenMulticastUDP("udp4", &ifaces[0], addr)
-// 	if err != nil {
-// 		log.Fatalf("cannot listen on multicast udp: %s", err)
-// 	}
-
-// 	return mUdpConn
-// }
-
 func setupMulticastUDPConn() *ipv4.PacketConn {
 	addr, err := net.ResolveUDPAddr("udp4", MulticastUDP)
 	if err != nil {
@@ -115,20 +100,20 @@ func setupMulticastUDPConn() *ipv4.PacketConn {
 		log.Fatalf("cannot listen on UDP: %v", err)
 	}
 
-	p := ipv4.NewPacketConn(conn)
+	mUdpConn := ipv4.NewPacketConn(conn)
 
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		log.Fatalf("cannot get interfaces: %v", err)
 	}
 
-	p.JoinGroup(&ifaces[1], addr)
+	mUdpConn.JoinGroup(&ifaces[1], addr)
 		
-	if err := p.SetMulticastLoopback(true); err != nil {
+	if err := mUdpConn.SetMulticastLoopback(true); err != nil {
 		log.Fatalf("cannot enable multicast loopback: %v", err)
 	}
 
-	return p
+	return mUdpConn
 }
 
 func main() {
@@ -149,7 +134,7 @@ func main() {
 	defer mUdpConn.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	handleShutdownConn(conn, mUdpConn, udpConn, cancel, *username, *chatID)
+	handleShutdownConn(conn, mUdpConn, udpConn, ctx, cancel, *username, *chatID)
 
 	go func() {
 		reader := bufio.NewReader(os.Stdin)
@@ -380,12 +365,16 @@ func sendUDPMessageToServer(conn *net.UDPConn, message Message) error {
 
 	return nil
 }
-func handleShutdownConn(conn net.Conn, mUdpConn *ipv4.PacketConn, udpConn *net.UDPConn, cancel context.CancelFunc, username string, chatID string) {
+func handleShutdownConn(conn net.Conn, mUdpConn *ipv4.PacketConn, udpConn *net.UDPConn, ctx context.Context, cancel context.CancelFunc, username string, chatID string) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		<-signalChan
+		select {
+		case <-ctx.Done():
+		case <-signalChan:
+		}
+
 		cancel()
 		mUdpConn.Close()
 		udpConn.Close()

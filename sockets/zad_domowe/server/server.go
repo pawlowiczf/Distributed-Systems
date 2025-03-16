@@ -73,7 +73,7 @@ func main() {
 	defer cancel()
 	
 	go server.handleUDPConnection(ctx, udpConn)
-	server.handleServerShutdownConn(listener, udpConn, cancel)
+	server.handleServerShutdownConn(listener, udpConn, ctx, cancel)
 
 	for {
 		select {
@@ -373,12 +373,16 @@ type Message struct {
 	ChatID   string `json:"chat_id"`
 }
 
-func (server *Server) handleServerShutdownConn(listener net.Listener, udpConn *net.UDPConn, cancel context.CancelFunc) {
+func (server *Server) handleServerShutdownConn(listener net.Listener, udpConn *net.UDPConn, ctx context.Context, cancel context.CancelFunc) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		<-signalChan
+		select {
+		case <-ctx.Done():
+		case <-signalChan:
+		}
+		
 		cancel()
 		listener.Close()
 		udpConn.Close()
