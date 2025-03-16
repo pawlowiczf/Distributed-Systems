@@ -6,3 +6,6 @@ my:
 
 doodle:
 	uvicorn doodle:app --reload
+
+gc:
+	uvicorn geocoder:app --reload
