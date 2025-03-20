@@ -47,9 +47,6 @@ async def GetSunsetTimeFromCoordinates(lat: str, lng: str, date: str):
             if data.get('status') != "OK":
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Server response error: {data.get('status')}")
             
-            # if len(data.get('results')) == 0:
-            #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Provided address was not found")
-
             return {
                 'sunrise': data['results'].get('sunrise'),
                 'sunset': data['results'].get('sunset')
@@ -81,6 +78,28 @@ async def GetVisibleSatellitePassesFromCoordinates(lat: str, lng: str, satellite
             raise HTTPException(status_code=500, detail=f"Connection API error: {str(e)}")
     #        
 # end procedure GetVisibleSatellitePassesFromCoordinates()
+
+async def GetSatellitePassesFromCoordinates(lat: str, lng: str, satelliteID: int):
+    async with httpx.AsyncClient() as client:
+        url = f"https://sat.terrestre.ar/passes/{satelliteID}?lat={lat}&lon={lng}&days={1}"
+        
+        try:
+            response = await client.get(url)
+
+            if response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail=f"Server response error: {response.text}")
+
+            try:
+                data = response.json() 
+            except ValueError:
+                raise HTTPException(status_code=500, detail="Bad response. Couldn't process JSON response.")
+
+            return data 
+        
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Connection API error: {str(e)}")
+    #      
+# end procedure GetSatellitePassesFromCoordinates
 
 def TransformCoordinates(coordinates: str):
     pattern = r"(\d+)° (\d+)' ([\d\.]+)'' ([NSEW])"
