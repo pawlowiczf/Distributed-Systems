@@ -15,6 +15,7 @@ app = FastAPI()
 
 reserved = {}
 codes = {}
+
 MAX_NUMBER_OF_REQUESTS = 3
 
 @app.get("/", response_class=HTMLResponse)
@@ -156,7 +157,7 @@ async def GetVisibleSatellitePass(request: GetVisibleSatellitePassesRequest):
             detail="Provided authorization code is invalid!"
         )
     #
-    if codes[request.uuid] > MAX_NUMBER_OF_REQUESTS:
+    if codes[request.uuid] >= MAX_NUMBER_OF_REQUESTS:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="You have used all free requests. Generate new code!"
@@ -191,7 +192,7 @@ async def GetAllSatellitePass(request: GetVisibleSatellitePassesRequest):
             detail="Provided authorization code is invalid!"
         )
     #
-    if codes[request.uuid] > MAX_NUMBER_OF_REQUESTS:
+    if codes[request.uuid] >= MAX_NUMBER_OF_REQUESTS:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="You have used all free requests. Generate new code!"
@@ -222,7 +223,7 @@ class GetCodeRequest(BaseModel):
     email: EmailStr
 # 
 
-@app.post('/v1/get-code')
+@app.post('/v1/auth/code')
 async def GetCode(request: GetCodeRequest):
     if request.email in reserved:
         if datetime.now() >= reserved[request.email]:

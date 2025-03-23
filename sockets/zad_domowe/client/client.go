@@ -19,7 +19,7 @@ import (
 const (
 	ServerTCPAddress = "127.0.0.1:8080"
 	ServerUDPAddress = "127.0.0.1:8081"
-	MulticastUDP     = "239.255.255.250:7000"
+	MulticastUDP     = "230.255.255.250:7000"
 )
 
 func RandomUsername() string {
@@ -106,8 +106,7 @@ func setupMulticastUDPConn() *ipv4.PacketConn {
 	if err != nil {
 		log.Fatalf("cannot get interfaces: %v", err)
 	}
-
-	mUdpConn.JoinGroup(&ifaces[1], addr)
+	mUdpConn.JoinGroup(&ifaces[len(ifaces) - 1], addr)
 		
 	if err := mUdpConn.SetMulticastLoopback(true); err != nil {
 		log.Fatalf("cannot enable multicast loopback: %v", err)

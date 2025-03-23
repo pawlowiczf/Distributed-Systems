@@ -17,7 +17,7 @@ async def GetCoordinatesFromAddress(address: str) -> dict:
             try:
                 data = response.json() 
             except ValueError:
-                raise HTTPException(status_code=500, detail="Bad response. Couldn't process JSON response.")
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Bad response. Couldn't process JSON response.")
 
             if len(data.get('results')) == 0:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Provided address was not found")
@@ -25,7 +25,7 @@ async def GetCoordinatesFromAddress(address: str) -> dict:
             return data['results'][0]['annotations']['DMS']
         
         except httpx.RequestError as e:
-            raise HTTPException(status_code=500, detail=f"Connection API error: {str(e)}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Connection API error: {str(e)}")
     #
 # end procedure GetCoordinatesFromAddress()
 
@@ -42,7 +42,7 @@ async def GetSunsetTimeFromCoordinates(lat: str, lng: str, date: str):
             try:
                 data = response.json() 
             except ValueError:
-                raise HTTPException(status_code=500, detail="Bad response. Couldn't process JSON response.")
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Bad response. Couldn't process JSON response.")
 
             if data.get('status') != "OK":
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Server response error: {data.get('status')}")
@@ -53,7 +53,7 @@ async def GetSunsetTimeFromCoordinates(lat: str, lng: str, date: str):
             }
         
         except httpx.RequestError as e:
-            raise HTTPException(status_code=500, detail=f"Connection API error: {str(e)}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Connection API error: {str(e)}")
     #    
 # end procedure GetSunsetTime()
 
@@ -70,12 +70,12 @@ async def GetVisibleSatellitePassesFromCoordinates(lat: str, lng: str, satellite
             try:
                 data = response.json() 
             except ValueError:
-                raise HTTPException(status_code=500, detail="Bad response. Couldn't process JSON response.")
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Bad response. Couldn't process JSON response.")
 
             return data 
         
         except httpx.RequestError as e:
-            raise HTTPException(status_code=500, detail=f"Connection API error: {str(e)}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Connection API error: {str(e)}")
     #        
 # end procedure GetVisibleSatellitePassesFromCoordinates()
 
@@ -92,12 +92,12 @@ async def GetSatellitePassesFromCoordinates(lat: str, lng: str, satelliteID: int
             try:
                 data = response.json() 
             except ValueError:
-                raise HTTPException(status_code=500, detail="Bad response. Couldn't process JSON response.")
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Bad response. Couldn't process JSON response.")
 
             return data 
         
         except httpx.RequestError as e:
-            raise HTTPException(status_code=500, detail=f"Connection API error: {str(e)}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Connection API error: {str(e)}")
     #      
 # end procedure GetSatellitePassesFromCoordinates
 

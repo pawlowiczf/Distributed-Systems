@@ -1,0 +1,210 @@
+{
+	"info": {
+		"_postman_id": "65f0918d-7904-47b4-91bd-e1bf1cbb0678",
+		"name": "HomeworkDS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "34076634"
+	},
+	"item": [
+		{
+			"name": "GetCoordinates",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"address\": \"Tarnów\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/v1/coordinates",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"v1",
+						"coordinates"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetSunsetTime",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"lattitude\": 50.0544051,\r\n    \"longitude\": 19.9360223\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/v1/sunset",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"v1",
+						"sunset"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetPasses",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"address\": \"Kraków Dworzec Główny\",\r\n    \"satelliteID\": 25544\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/v1/passes",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"v1",
+						"passes"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Passes",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://sat.terrestre.ar/passes/25544?lat=50.0544051&lon=19.9360223&days=1&visible_only=true",
+					"protocol": "https",
+					"host": [
+						"sat",
+						"terrestre",
+						"ar"
+					],
+					"path": [
+						"passes",
+						"25544"
+					],
+					"query": [
+						{
+							"key": "lat",
+							"value": "50.0544051"
+						},
+						{
+							"key": "lon",
+							"value": "19.9360223"
+						},
+						{
+							"key": "days",
+							"value": "1"
+						},
+						{
+							"key": "visible_only",
+							"value": "true"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetAllPasses",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"address\": \"Kraków Dworzec Główny\",\r\n    \"satelliteID\": 25544\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/v1/passes-all",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"v1",
+						"passes-all"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetCode",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"kowalski2@gmail.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/v1/auth/code",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"v1",
+						"auth",
+						"code"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
