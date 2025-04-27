@@ -1,0 +1,29 @@
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "sr.grpc.gen";
+option java_outer_classname = "StreamingProto";
+
+package streaming;
+
+message Task
+{
+  int32 max = 1;
+}
+
+message Number
+{
+  int32 value = 1;
+}
+
+message Report
+{
+  int32 count = 1;
+  int64 processorTime = 2;
+}
+
+service StreamTester {
+  rpc GeneratePrimeNumbers(Task) returns (stream Number) {}
+  rpc CountPrimeNumbers(stream Number) returns (Report) {}
+}

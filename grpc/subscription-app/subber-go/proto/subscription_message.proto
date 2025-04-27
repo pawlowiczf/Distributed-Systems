@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option go_package = "subber-go/pb";
+package pb; 
+
+import "google/protobuf/timestamp.proto";
+
+enum AssetName {
+    UNKNOWN = 0;
+    GOLD = 1;
+    SILVER = 2; 
+    BITCOIN = 3; 
+    CRUDE_OIL = 4;
+}
+
+message SubscriptionRequest {
+    AssetName asset_name = 1; 
+    double threshold = 2; 
+
+    oneof Condition {
+        bool GreaterThan = 3;
+        bool LessThan = 4; 
+    }
+
+    string clientUUID = 5; 
+}
+
+message SubscriptionResponse {
+    AssetName asset_name = 1;
+     
+    double current_price = 2; 
+    string message = 3; 
+
+    google.protobuf.Timestamp current_time = 4; 
+    repeated google.protobuf.Timestamp last_time_occured = 5; 
+}

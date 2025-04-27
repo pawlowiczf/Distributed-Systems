@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+option go_package = "subber-go/pb";
+package pb; 
+
+import "subscription_message.proto";
+
+service Subber {
+    rpc Subscription(SubscriptionRequest) returns (stream SubscriptionResponse) {};
+}
