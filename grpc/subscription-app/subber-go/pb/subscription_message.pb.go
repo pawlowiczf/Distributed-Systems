@@ -287,7 +287,8 @@ const file_subscription_message_proto_rawDesc = "" +
 	"\n" +
 	"\x06SILVER\x10\x02\x12\v\n" +
 	"\aBITCOIN\x10\x03\x12\r\n" +
-	"\tCRUDE_OIL\x10\x04B\x0eZ\fsubber-go/pbb\x06proto3"
+	"\tCRUDE_OIL\x10\x04B\x1b\n" +
+	"\tsubber.pbP\x01Z\fsubber-go/pbb\x06proto3"
 
 var (
 	file_subscription_message_proto_rawDescOnce sync.Once

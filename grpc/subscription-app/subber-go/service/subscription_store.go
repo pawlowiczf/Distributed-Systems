@@ -40,6 +40,7 @@ type Subscription struct {
 	AssetName pb.AssetName
 	Condition Condition
 	Threshold float64
+	Stream grpc.ServerStreamingServer[pb.SubscriptionResponse]
 }
 
 func NewSubscriptionStore(eventsChan chan generator.Event, sm *manager.ShutdownManager) *SubscriptionStore {

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"subber-go/manager"
 	"subber-go/pb"
 
@@ -43,4 +44,13 @@ func (ss *SubberServer) Subscription(req *pb.SubscriptionRequest, stream grpc.Se
 	log.Info().Str("client UUID", req.GetClientUUID()).Msg("subscription cancelled")
 
 	return nil
+}
+
+func (ss *SubberServer) ListOptions(ctx context.Context, req *pb.ListOptionsRequest) (*pb.ListOptionsResponse, error) {
+	rsp := &pb.ListOptionsResponse{
+		AssetName: []pb.AssetName{
+			1,2,3,4,
+		},
+	}
+	return rsp, nil 
 }

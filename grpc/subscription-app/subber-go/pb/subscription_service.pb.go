@@ -24,19 +24,25 @@ var File_subscription_service_proto protoreflect.FileDescriptor
 
 const file_subscription_service_proto_rawDesc = "" +
 	"\n" +
-	"\x1asubscription_service.proto\x12\x02pb\x1a\x1asubscription_message.proto2O\n" +
+	"\x1asubscription_service.proto\x12\x02pb\x1a\x1asubscription_message.proto\x1a\x1asubscription_options.proto2\x91\x01\n" +
 	"\x06Subber\x12E\n" +
-	"\fSubscription\x12\x17.pb.SubscriptionRequest\x1a\x18.pb.SubscriptionResponse\"\x000\x01B\x0eZ\fsubber-go/pbb\x06proto3"
+	"\fSubscription\x12\x17.pb.SubscriptionRequest\x1a\x18.pb.SubscriptionResponse\"\x000\x01\x12@\n" +
+	"\vListOptions\x12\x16.pb.ListOptionsRequest\x1a\x17.pb.ListOptionsResponse\"\x00B\x1b\n" +
+	"\tsubber.pbP\x01Z\fsubber-go/pbb\x06proto3"
 
 var file_subscription_service_proto_goTypes = []any{
 	(*SubscriptionRequest)(nil),  // 0: pb.SubscriptionRequest
-	(*SubscriptionResponse)(nil), // 1: pb.SubscriptionResponse
+	(*ListOptionsRequest)(nil),   // 1: pb.ListOptionsRequest
+	(*SubscriptionResponse)(nil), // 2: pb.SubscriptionResponse
+	(*ListOptionsResponse)(nil),  // 3: pb.ListOptionsResponse
 }
 var file_subscription_service_proto_depIdxs = []int32{
 	0, // 0: pb.Subber.Subscription:input_type -> pb.SubscriptionRequest
-	1, // 1: pb.Subber.Subscription:output_type -> pb.SubscriptionResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	1, // 1: pb.Subber.ListOptions:input_type -> pb.ListOptionsRequest
+	2, // 2: pb.Subber.Subscription:output_type -> pb.SubscriptionResponse
+	3, // 3: pb.Subber.ListOptions:output_type -> pb.ListOptionsResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -48,6 +54,7 @@ func file_subscription_service_proto_init() {
 		return
 	}
 	file_subscription_message_proto_init()
+	file_subscription_options_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

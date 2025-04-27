@@ -12,5 +12,5 @@ import "subscription_options.proto";
 service Subber {
     rpc Subscription(SubscriptionRequest) returns (stream SubscriptionResponse) {};
     rpc ListOptions(ListOptionsRequest) returns (ListOptionsResponse) {};
-    // rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse) {};
+//    rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse) {};
 }

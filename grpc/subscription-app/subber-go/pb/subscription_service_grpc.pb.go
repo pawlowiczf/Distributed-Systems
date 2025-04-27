@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	Subber_Subscription_FullMethodName = "/pb.Subber/Subscription"
+	Subber_ListOptions_FullMethodName  = "/pb.Subber/ListOptions"
 )
 
 // SubberClient is the client API for Subber service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SubberClient interface {
 	Subscription(ctx context.Context, in *SubscriptionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SubscriptionResponse], error)
+	ListOptions(ctx context.Context, in *ListOptionsRequest, opts ...grpc.CallOption) (*ListOptionsResponse, error)
 }
 
 type subberClient struct {
@@ -56,11 +58,22 @@ func (c *subberClient) Subscription(ctx context.Context, in *SubscriptionRequest
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Subber_SubscriptionClient = grpc.ServerStreamingClient[SubscriptionResponse]
 
+func (c *subberClient) ListOptions(ctx context.Context, in *ListOptionsRequest, opts ...grpc.CallOption) (*ListOptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListOptionsResponse)
+	err := c.cc.Invoke(ctx, Subber_ListOptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SubberServer is the server API for Subber service.
 // All implementations must embed UnimplementedSubberServer
 // for forward compatibility.
 type SubberServer interface {
 	Subscription(*SubscriptionRequest, grpc.ServerStreamingServer[SubscriptionResponse]) error
+	ListOptions(context.Context, *ListOptionsRequest) (*ListOptionsResponse, error)
 	mustEmbedUnimplementedSubberServer()
 }
 
@@ -73,6 +86,9 @@ type UnimplementedSubberServer struct{}
 
 func (UnimplementedSubberServer) Subscription(*SubscriptionRequest, grpc.ServerStreamingServer[SubscriptionResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method Subscription not implemented")
+}
+func (UnimplementedSubberServer) ListOptions(context.Context, *ListOptionsRequest) (*ListOptionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListOptions not implemented")
 }
 func (UnimplementedSubberServer) mustEmbedUnimplementedSubberServer() {}
 func (UnimplementedSubberServer) testEmbeddedByValue()                {}
@@ -106,13 +122,36 @@ func _Subber_Subscription_Handler(srv interface{}, stream grpc.ServerStream) err
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Subber_SubscriptionServer = grpc.ServerStreamingServer[SubscriptionResponse]
 
+func _Subber_ListOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubberServer).ListOptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Subber_ListOptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubberServer).ListOptions(ctx, req.(*ListOptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Subber_ServiceDesc is the grpc.ServiceDesc for Subber service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Subber_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "pb.Subber",
 	HandlerType: (*SubberServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListOptions",
+			Handler:    _Subber_ListOptions_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Subscription",

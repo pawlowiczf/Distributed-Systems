@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option go_package = "subber-go/pb";
+package pb; 
+
+option java_package = "subber.pb";
+option java_multiple_files = true; 
+
+import "subscription_message.proto";
+
+message ListOptionsRequest {
+
+}
+
+message ListOptionsResponse {
+    repeated AssetName asset_name = 1;
+}
+
+
+message RemoveSubscriptionRequest {
+    AssetName asset_name = 1; 
+    double threshold = 2;
+}
+
+message RemoveSubscriptionResponse {
+    string message = 1;
+}
