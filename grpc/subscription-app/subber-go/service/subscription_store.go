@@ -1,13 +1,16 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"subber-go/generator"
+	"subber-go/manager"
 	"subber-go/pb"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,9 +18,11 @@ import (
 )
 
 type SubscriptionStore struct {
-	Clients map[uuid.UUID]*Client 
-	EventsChan    chan generator.Event
-	mutex         sync.Mutex
+	sm *manager.ShutdownManager
+
+	Clients    map[uuid.UUID]*Client
+	EventsChan chan generator.Event
+	mutex      sync.Mutex
 }
 
 type Client struct {
@@ -34,14 +39,15 @@ type LessThan struct{}
 type Subscription struct {
 	AssetName pb.AssetName
 	Condition Condition
-	Threshold float64 
+	Threshold float64
 }
 
-func NewSubscriptionStore(eventsChan chan generator.Event) *SubscriptionStore {
+func NewSubscriptionStore(eventsChan chan generator.Event, sm *manager.ShutdownManager) *SubscriptionStore {
 	return &SubscriptionStore{
-		Clients: make(map[uuid.UUID]*Client),
-		EventsChan:    eventsChan,
-		mutex:         sync.Mutex{},
+		Clients:    make(map[uuid.UUID]*Client),
+		EventsChan: eventsChan,
+		mutex:      sync.Mutex{},
+		sm:         sm,
 	}
 }
 
@@ -57,11 +63,11 @@ func (ss *SubscriptionStore) AddSubscription(req *pb.SubscriptionRequest, stream
 
 	// Client is already registered. Check if it is a new, unique sub. Send buffered messages.
 	if client, ok := ss.Clients[clientUUID]; ok {
-		client.ClientStream = stream 
+		client.ClientStream = stream
 		ss.SendBufferedMessages(client)
 
 		if !ss.CheckIfUniqueSubscription(client, req) {
-			return 
+			return
 		}
 
 		subscription := &Subscription{
@@ -71,9 +77,9 @@ func (ss *SubscriptionStore) AddSubscription(req *pb.SubscriptionRequest, stream
 		}
 
 		ss.Clients[clientUUID].Subscriptions = append(ss.Clients[clientUUID].Subscriptions, subscription)
-		return 
-	} 
-	
+		return
+	}
+
 	client := &Client{
 		ClientUUID:    clientUUID,
 		ClientStream:  stream,
@@ -83,12 +89,11 @@ func (ss *SubscriptionStore) AddSubscription(req *pb.SubscriptionRequest, stream
 	subscription := &Subscription{
 		AssetName: req.GetAssetName(),
 		Condition: DetermineConditionType(req),
-		Threshold: req.GetThreshold(),		
+		Threshold: req.GetThreshold(),
 	}
 
-	ss.Clients[clientUUID] = client 
+	ss.Clients[clientUUID] = client
 	ss.Clients[clientUUID].Subscriptions = append(ss.Clients[clientUUID].Subscriptions, subscription)
-	return 
 }
 
 func DetermineConditionType(req *pb.SubscriptionRequest) Condition {
@@ -107,49 +112,54 @@ func (ss *SubscriptionStore) CheckIfUniqueSubscription(client *Client, req *pb.S
 	for _, subscription := range client.Subscriptions {
 		//
 		if subscription.AssetName != req.GetAssetName() {
-			continue 
+			continue
 		}
 		if subscription.Threshold != req.GetThreshold() {
-			continue 
+			continue
 		}
 
 		switch subscription.Condition.(type) {
 		case *GreaterThan:
 			if _, ok := req.GetCondition().(*pb.SubscriptionRequest_GreaterThan); ok {
-				return false 
+				return false
 			}
 		case *LessThan:
 			if _, ok := req.GetCondition().(*pb.SubscriptionRequest_LessThan); ok {
-				return false 
+				return false
 			}
 		}
 	}
 
-	return true 
+	return true
 }
 
 func (ss *SubscriptionStore) ShouldSendMessage(event generator.Event, subscription *Subscription) bool {
 	if event.AssetName != subscription.AssetName {
-		return false 
+		return false
 	}
-	
+
 	switch subscription.Condition.(type) {
 	case *GreaterThan:
 		if event.Value < subscription.Threshold {
-			return false 
+			return false
 		}
 	case *LessThan:
 		if event.Value > subscription.Threshold {
-			return false 
+			return false
 		}
 	}
-	return true 
+	return true
 }
 
 func (ss *SubscriptionStore) ReceiveEvents() {
 	for {
-		event := <-ss.EventsChan
-		ss.NotifyClients(event)
+		select {
+		case event := <-ss.EventsChan:
+			ss.NotifyClients(event)
+		case <-ss.sm.Ctx.Done():
+			log.Info().Msg("shutting down event receiver")
+			return
+		}
 	}
 }
 
@@ -174,7 +184,7 @@ func (ss *SubscriptionStore) NotifyClients(event generator.Event) {
 		for _, subscription := range client.Subscriptions {
 			//
 			if !ss.ShouldSendMessage(event, subscription) {
-				continue 
+				continue
 			}
 
 			threshold := subscription.Threshold
@@ -182,13 +192,13 @@ func (ss *SubscriptionStore) NotifyClients(event generator.Event) {
 			switch subscription.Condition.(type) {
 			case *GreaterThan:
 				if value < threshold {
-					continue 
+					continue
 				}
 				message = fmt.Sprintf("%s exceeded %f", pb.AssetName_name[int32(event.AssetName)], subscription.Threshold)
 
 			case *LessThan:
 				if value > threshold {
-					continue 
+					continue
 				}
 				message = fmt.Sprintf("%s dropped below %f", pb.AssetName_name[int32(event.AssetName)], subscription.Threshold)
 			}
@@ -210,24 +220,56 @@ func (ss *SubscriptionStore) SendMessage(client *Client, event generator.Event, 
 
 	if client.ClientStream == nil {
 		client.Buffer = append(client.Buffer, rsp)
-		return 
+		return
 	}
 
 	err := client.ClientStream.Send(rsp)
 	if err != nil {
 		st, ok := status.FromError(err)
-		if ok {
-			if st.Code() == codes.Unavailable {
-				client.ClientStream = nil 
-				client.Buffer = append(client.Buffer, rsp)
-			}
+		if ok && st.Code() == codes.Unavailable {
+			client.ClientStream = nil
+			client.Buffer = append(client.Buffer, rsp)
+			return
+		}
+
+		if client.ClientStream.Context().Err() == context.Canceled {
+			log.Info().Msg("client context cancelled")
+			return
 		}
 
 		fmt.Println(err)
 	}
 }
 
+func (ss *SubscriptionStore) RemoveSubscription(req *pb.SubscriptionRequest) {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
 
-func (ss *SubscriptionStore) RemoveSubscription() {
-	
+	clientUUID, _ := uuid.Parse(req.GetClientUUID())
+
+	client := ss.Clients[clientUUID]
+	for a, subscription := range client.Subscriptions {
+		if subscription.AssetName != req.GetAssetName() {
+			continue
+		}
+		if subscription.Threshold != req.GetThreshold() {
+			continue
+		}
+
+		switch req.GetCondition().(type) {
+		case *pb.SubscriptionRequest_GreaterThan:
+			if _, ok := subscription.Condition.(LessThan); ok {
+				continue
+			}
+		case *pb.SubscriptionRequest_LessThan:
+			if _, ok := subscription.Condition.(GreaterThan); ok {
+				continue
+			}
+		}
+
+		client.Subscriptions = append(client.Subscriptions[:a], client.Subscriptions[a+1:]...)
+		ss.Clients[clientUUID] = client
+		return
+		// TODO: jeśli jest więcej subskrybcji, to musimy je też tu usunąć
+	}
 }

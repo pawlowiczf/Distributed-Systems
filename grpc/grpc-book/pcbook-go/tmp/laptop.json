@@ -1,0 +1,61 @@
+{
+    "id": "926e9cf1-5bf3-4f8e-8f36-2bf73a43656a",
+    "brand": "Lenovo",
+    "name": "Thinkpad P1",
+    "cpu": {
+        "brand": "AMD",
+        "name": "Ryzen 7 PRO 2700U",
+        "numberCores": 6,
+        "numberThreads": 10,
+        "minGhz": 2.5395542535918456,
+        "maxGhz": 3.6766022010660335
+    },
+    "ram": {
+        "value": "15",
+        "unit": "GIGABYTE"
+    },
+    "gpus": [
+        {
+            "brand": "AMD",
+            "name": "RX 580",
+            "minGhz": 1.3571323901082395,
+            "maxGhz": 1.4794002695365933,
+            "memory": {
+                "value": "4",
+                "unit": "GIGABYTE"
+            }
+        }
+    ],
+    "storages": [
+        {
+            "driver": "SSD",
+            "memory": {
+                "value": "425",
+                "unit": "GIGABYTE"
+            }
+        },
+        {
+            "driver": "HDD",
+            "memory": {
+                "value": "1",
+                "unit": "TERABYTE"
+            }
+        }
+    ],
+    "screen": {
+        "sizeInch": 16.445192,
+        "resolution": {
+            "width": 4728,
+            "height": 2660
+        },
+        "panel": "IPS"
+    },
+    "keyboard": {
+        "layout": "QWERTY",
+        "backlit": true
+    },
+    "weightKg": 2.0196869726441564,
+    "priceUsd": 2339.300799265817,
+    "releaseYear": 2018,
+    "updatedAt": "2025-04-23T18:33:44.256533600Z"
+}

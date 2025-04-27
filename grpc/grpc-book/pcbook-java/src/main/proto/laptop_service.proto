@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package pcbook;
+option go_package = "pcbook-go/pb";
+option java_package = "com.pcbook.pb";
+option java_multiple_files = true;
+
+import "laptop_message.proto";
+
+message CreateLaptopRequest {
+    Laptop laptop = 1; 
+}
+
+message CreateLaptopResponse {
+    string id = 1;
+}
+
+service LaptopService {
+    rpc CreateLaptop(CreateLaptopRequest) returns (CreateLaptopResponse) {};
+}
