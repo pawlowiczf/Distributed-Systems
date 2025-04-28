@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+option java_package = "app.pb";
+option java_multiple_files = true;
+
+import "hello_message.proto";
+
+service HelloService {
+  rpc Hello(HelloRequest) returns (HelloResponse) {};
+  rpc HelloStream(HelloRequest) returns (stream HelloResponse) {};
+}

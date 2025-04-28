@@ -69,7 +69,7 @@ func main() {
 			log.Fatal().Err(err).Msg("grpc server error")
 		}
 	}
-
+	
 	for {
 		rsp, err := stream.Recv()
 		if err != nil {

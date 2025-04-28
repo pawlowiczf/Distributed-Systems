@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.example";
+option java_outer_classname = "StreamingProto";
+
+package streaming;
+
+
+enum CurrencyEnum {
+  DOL = 0;
+  EUR = 1;
+}
+
+message CurrencyMessage {
+  CurrencyEnum currencyEnum = 1;
+  float valueInPLN = 2;
+  string date = 3;
+}
+
+message UserRequest {
+  string userId = 1;
+  CurrencyEnum currencyEnum = 2;
+}
+
+service CurrencyService {
+  rpc Connect(UserRequest) returns (stream CurrencyMessage);
+}

@@ -1,0 +1,29 @@
+<component name="libraryTable">
+  <library name="lib">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/netty-codec-http2-4.1.108.Final.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/netty-buffer-4.1.108.Final.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/protobuf-java-4.30.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/grpc-api-1.71.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/guava-31.1-jre.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/javax.annotation-api-1.3.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/perfmark-api-0.25.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/netty-common-4.1.75.Final.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/grpc-protobuf-lite-1.71.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/grpc-stub-1.71.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/grpc-netty-1.71.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/netty-transport-4.1.11.Final.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/netty-codec-4.1.11.Final.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/netty-handler-4.1.108.Final(1).jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/error_prone_annotations-2.10.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/grpc-protobuf-1.71.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/grpc-context-1.71.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/failureaccess-1.0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/grpc-core-1.71.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/grpc-netty-shaded-1.71.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/grpc-example/lib/jsr305-3.0.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

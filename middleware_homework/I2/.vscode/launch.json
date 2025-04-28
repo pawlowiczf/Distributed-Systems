@@ -1,0 +1,13 @@
+{
+    "configurations": [
+      {
+        "name": "Debug",
+        "environment": [
+          {
+            "name": "PATH",
+            "value": "./bin"
+          }
+        ]
+      }
+    ]
+  }
