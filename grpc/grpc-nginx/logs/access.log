@@ -11,3 +11,4 @@
 127.0.0.1 - - [28/Apr/2025:20:11:29 +0200] "GET / HTTP/1.1" 502 559 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 127.0.0.1 - - [28/Apr/2025:20:11:29 +0200] "GET /favicon.ico HTTP/1.1" 502 559 "http://localhost:8080/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 127.0.0.1 - - [28/Apr/2025:20:12:20 +0200] "POST /HelloService/Hello HTTP/2.0" 502 157 "-" "grpc-java-netty/1.72.0"
+127.0.0.1 - - [28/Apr/2025:20:30:54 +0200] "GET /favicon.ico HTTP/1.1" 499 0 "http://localhost:8080/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
