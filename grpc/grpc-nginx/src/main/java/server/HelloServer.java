@@ -14,6 +14,10 @@ import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -34,7 +38,7 @@ public class HelloServer {
     public HelloServer(NettyServerBuilder serverBuilder, int port) {
         this.port = port;
 
-        HelloService service = new HelloService();
+        HelloService service = new HelloService(port);
         this.server = serverBuilder.addService(service).build();
     }
 
@@ -88,29 +92,29 @@ public class HelloServer {
 
         HelloServer server1 = new HelloServer(50051);
         HelloServer server2 = new HelloServer(50052);
+        HelloServer server3 = new HelloServer(50053);
+        HelloServer server4 = new HelloServer(50054);
+        HelloServer server5 = new HelloServer(50055);
 
-        Thread serverThread1 = new Thread(() -> {
-            try {
-                server1.start();
-                server1.blockUntilShutdown();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        List<HelloServer> servers = Arrays.asList(server1, server2, server3, server4, server5);
+        List<Thread> threads = new ArrayList<>();
 
-        Thread serverThread2 = new Thread(() -> {
-            try {
-                server2.start();
-                server2.blockUntilShutdown();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        for (HelloServer server : servers) {
+            Thread t = new Thread(() -> {
+                try {
+                    server.start();
+                    server.blockUntilShutdown();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+            t.start();
+            threads.add(t);
+        }
 
-        serverThread1.start();
-        serverThread2.start();
-
-        serverThread1.join();
-        serverThread2.join();
+        for (Thread t : threads) {
+            t.join();
+        }
     }
 }
+
