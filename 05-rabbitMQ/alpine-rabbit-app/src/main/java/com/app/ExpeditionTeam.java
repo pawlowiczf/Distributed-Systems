@@ -31,7 +31,7 @@ public class ExpeditionTeam {
         String pattern = String.format("confirm.%s.*", teamName);
         String queueName = "confirm." + teamName;
 
-        this.channel.queueDeclare(queueName, true, false, false, null);
+        this.channel.queueDeclare(queueName, false, false, false, null);
         this.channel.queueBind(queueName, RabbitMQConfig.CONFIRM_EXCHANGE, pattern);
     }
 

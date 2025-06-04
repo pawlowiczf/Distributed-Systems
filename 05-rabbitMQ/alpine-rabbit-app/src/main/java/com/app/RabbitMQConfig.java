@@ -1,6 +1,5 @@
 package com.app;
 
-import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 public class RabbitMQConfig {

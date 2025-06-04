@@ -51,7 +51,7 @@ public class Supplier {
         for (String productName : availableProducts) {
             String queueName = "order." + productName;
 
-            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueDeclare(queueName, false, false, false, null);
             channel.queueBind(queueName, RabbitMQConfig.ORDER_EXCHANGE, "order." + productName);
 
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
