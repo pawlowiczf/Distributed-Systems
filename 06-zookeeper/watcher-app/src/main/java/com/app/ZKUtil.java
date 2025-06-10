@@ -56,4 +56,53 @@ public class ZKUtil {
         }
     }
 
+    public void printDescendantCounts(String basePath) throws KeeperException, InterruptedException {
+        int children = 0;
+        int grandchildren = 0;
+        int greatGrandchildren = 0;
+
+        basePath = "/" +  basePath.split("/")[1];
+
+        Queue<Map.Entry<String, Integer>> queue = new LinkedList<>();
+        queue.add(new AbstractMap.SimpleEntry<>(basePath, 0));
+
+        while (!queue.isEmpty()) {
+            Map.Entry<String, Integer> entry = queue.poll();
+            String currentPath = entry.getKey();
+            int level = entry.getValue();
+
+            if (level < 3) {
+                try {
+                    List<String> childNames = zk.getChildren(currentPath, false);
+                    for (String child : childNames) {
+                        String childPath = formatPath(currentPath, child);
+                        int childLevel = level + 1;
+
+                        switch (childLevel) {
+                            case 1 -> children++;
+                            case 2 -> grandchildren++;
+                            case 3 -> greatGrandchildren++;
+                        }
+
+                        if (childLevel < 3) {
+                            queue.add(new AbstractMap.SimpleEntry<>(childPath, childLevel));
+                        }
+                    }
+                } catch (KeeperException.NoNodeException e) {
+                    System.out.println("[UWAGA] Węzeł " + currentPath + " nie istnieje!");
+                }
+            }
+        }
+
+        System.out.println("Dzieci: " + children);
+        System.out.println("Wnuki: " + grandchildren);
+        System.out.println("Prawnuki: " + greatGrandchildren);
+    }
+
+    private String formatPath(String parent, String child) {
+        return parent.equals("/")
+                ? parent + child
+                : parent + "/" + child;
+    }
+
 }

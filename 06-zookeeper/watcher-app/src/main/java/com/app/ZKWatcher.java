@@ -95,8 +95,9 @@ public class ZKWatcher implements Watcher {
             }
         } else {
             try {
-                int childrenCount = zk.getAllChildrenNumber(zNodeName);
-                LOGGER.info("Amount of zNode `{}` children is: {}", zNodeName, childrenCount);
+//                int childrenCount = zk.getAllChildrenNumber(zNodeName);
+                printer.printDescendantCounts(watchedEventPath);
+//                LOGGER.info("Amount of zNode `{}` children is: {}", zNodeName, childrenCount);
             } catch (KeeperException | InterruptedException e) {
                 throw new RuntimeException("Error logging zNode children amount", e);
             }
